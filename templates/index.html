@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block contenido %}
+
+<div class="wrap">
+    <canvas id="game" width="900" height="560"></canvas>
+
+    <div class="controls">
+        <div class="hud-mini">
+            <div id="scoreStat">Puntaje: 0</div>
+            <div id="levelStat">Nivel: 1</div>
+            <div id="hpStat">Casa: ❤️❤️❤️</div>
+        </div>
+
+        <button id="shootBtn">MANTENER PARA RAYO ⚡</button>
+    </div>
+
+    <div id="message">
+        Defiende la casita 🏠 del gatito 😺  
+        Dispara rayos a los botes 🗑️ que bajan.
+    </div>
+</div>
+
+<style>
+    .emoji {
+        font-size: 40px;
+    }
+</style>
+
+<script>
+// ---------------------------------------------------
+// VARIABLES
+// ---------------------------------------------------
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let score = 0;
+let level = 1;
+let hp = 3;
+
+let shooting = false;
+let mouseX = 450;
+let mouseY = 300;
+
+let enemies = [];
+
+const house = { x: 380, y: 490, width: 60, height: 60 };
+
+// ---------------------------------------------------
+// SPAWN DE ENEMIGOS (botes 🗑️)
+// ---------------------------------------------------
+
+function spawnEnemy() {
+    enemies.push({
+        x: Math.random() * 850,
+        y: -40,
+        size: 40,
+        speed: 2 + Math.random() * level
+    });
+}
+setInterval(spawnEnemy, 900);
+
+// ---------------------------------------------------
+// CONTROLES
+// ---------------------------------------------------
+
+document.getElementById("shootBtn").onmousedown = () => shooting = true;
+document.getElementById("shootBtn").onmouseup = () => shooting = false;
+
+canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+};
+
+// ---------------------------------------------------
+// FUNCIÓN PARA DIBUJAR EMOJIS
+// ---------------------------------------------------
+
+function drawEmoji(emoji, x, y) {
+    ctx.font = "40px serif";
+    ctx.fillText(emoji, x, y);
+}
+
+// ---------------------------------------------------
+// LOOP PRINCIPAL
+// ---------------------------------------------------
+
+function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 🏠 CASA
+    drawEmoji("🏠", house.x, house.y);
+
+    // 😺 GATITO sobre la casa
+    drawEmoji("😺", house.x + 22, house.y - 10);
+
+    // ---------------------------------------------------
+    // ENEMIGOS 🗑️
+    // ---------------------------------------------------
+
+    enemies.forEach((e, i) => {
+        e.y += e.speed;
+
+        drawEmoji("🗑️", e.x, e.y);
+
+        // Si llegan a la casa
+        if (e.y > house.y) {
+            enemies.splice(i, 1);
+            hp--;
+
+            document.getElementById("hpStat").innerText =
+                "Casa: " + "❤️".repeat(Math.max(0, hp));
+
+            if (hp <= 0) {
+                alert("¡La casa fue destruida! Puntaje final: " + score);
+                location.reload();
+            }
+        }
+    });
+
+    // ---------------------------------------------------
+    // RAYO ⚡
+    // ---------------------------------------------------
+
+    if (shooting) {
+        ctx.strokeStyle = "yellow";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(house.x + 30, house.y);
+        ctx.lineTo(mouseX, mouseY);
+        ctx.stroke();
+
+        // DETECCIÓN
+        enemies.forEach((e, i) => {
+            const dx = e.x - mouseX;
+            const dy = e.y - mouseY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 35) {
+                enemies.splice(i, 1);
+                score += 10;
+
+                document.getElementById("scoreStat").innerText =
+                    "Puntaje: " + score;
+
+                if (score >= level * 200) {
+                    level++;
+                    document.getElementById("levelStat").innerText =
+                        "Nivel: " + level;
+                }
+            }
+        });
+    }
+
+    requestAnimationFrame(update);
+}
+
+update();
+</script>
+
+{% endblock %}
